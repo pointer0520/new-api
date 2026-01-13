@@ -91,6 +91,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// 创建并保存 session
 	setupLogin(&user, c)
 }
 
@@ -142,6 +143,7 @@ func Logout(c *gin.Context) {
 }
 
 func Register(c *gin.Context) {
+	// 配置校验
 	if !common.RegisterEnabled {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "管理员关闭了新用户注册",
@@ -206,7 +208,7 @@ func Register(c *gin.Context) {
 	}
 	affCode := user.AffCode // this code is the inviter's code, not the user's own code
 	inviterId, _ := model.GetUserIdByAffCode(affCode)
-	cleanUser := model.User{
+	registerUser := model.User{
 		Username:    user.Username,
 		Password:    user.Password,
 		DisplayName: user.Username,
@@ -214,16 +216,16 @@ func Register(c *gin.Context) {
 		Role:        common.RoleCommonUser, // 明确设置角色为普通用户
 	}
 	if common.EmailVerificationEnabled {
-		cleanUser.Email = user.Email
+		registerUser.Email = user.Email
 	}
-	if err := cleanUser.Insert(inviterId); err != nil {
+	if err := registerUser.Insert(inviterId); err != nil {
 		common.ApiError(c, err)
 		return
 	}
 
 	// 获取插入后的用户ID
 	var insertedUser model.User
-	if err := model.DB.Where("username = ?", cleanUser.Username).First(&insertedUser).Error; err != nil {
+	if err := model.DB.Where("username = ?", registerUser.Username).First(&insertedUser).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": "用户注册失败或用户ID获取失败",
@@ -244,7 +246,7 @@ func Register(c *gin.Context) {
 		// 生成默认令牌
 		token := model.Token{
 			UserId:             insertedUser.Id, // 使用插入后的用户ID
-			Name:               cleanUser.Username + "的初始令牌",
+			Name:               registerUser.Username + "的初始令牌",
 			Key:                key,
 			CreatedTime:        common.GetTimestamp(),
 			AccessedTime:       common.GetTimestamp(),
