@@ -28,8 +28,8 @@ func ReturnPreConsumedQuota(c *gin.Context, relayInfo *relaycommon.RelayInfo) {
 	}
 }
 
-// PreConsumeQuota checks if the user has enough quota to pre-consume.
-// It returns the pre-consumed quota if successful, or an error if not.
+// PreConsumeQuota 检查用户是否有足够的配额预先消费。
+// 如果成功，它返回预先消耗的配额，失败则返回错误。
 func PreConsumeQuota(c *gin.Context, preConsumedQuota int, relayInfo *relaycommon.RelayInfo) *types.NewAPIError {
 	userQuota, err := model.GetUserQuota(relayInfo.UserId, false)
 	if err != nil {
@@ -56,8 +56,8 @@ func PreConsumeQuota(c *gin.Context, preConsumedQuota int, relayInfo *relaycommo
 				logger.LogInfo(c, fmt.Sprintf("用户 %d 剩余额度 %s 且令牌 %d 额度 %d 充足, 信任且不需要预扣费", relayInfo.UserId, logger.FormatQuota(userQuota), relayInfo.TokenId, tokenQuota))
 			}
 		} else {
-			// in this case, we do not pre-consume quota
-			// because the user has enough quota
+			// 在这种情况下，我们不会预先消费配额
+			// 因为用户有足够的配额
 			preConsumedQuota = 0
 			logger.LogInfo(c, fmt.Sprintf("用户 %d 额度充足且为无限额度令牌, 信任且不需要预扣费", relayInfo.UserId))
 		}

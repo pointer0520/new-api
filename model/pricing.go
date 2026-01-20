@@ -90,7 +90,13 @@ func GetModelSupportEndpointTypes(model string) []constant.EndpointType {
 }
 
 func updatePricing() {
-	//modelRatios := common.GetModelRatios()
+	// 获取“可用模型能力”
+	// 每一条 ability 至少包含：
+	//	- Model
+	//	- Group
+	//	- ChannelType
+	// 📌 这是 pricing 的“事实来源”
+	// modelRatios := common.GetModelRatios()
 	enableAbilities, err := GetAllEnableAbilityWithChannels()
 	if err != nil {
 		common.SysLog(fmt.Sprintf("GetAllEnableAbilityWithChannels error: %v", err))
@@ -105,6 +111,7 @@ func updatePricing() {
 	containsList := make([]*Model, 0)
 	for i := range allMeta {
 		m := &allMeta[i]
+		// 然后根据 NameRule 分类
 		if m.NameRule == NameRuleExact {
 			metaMap[m.ModelName] = m
 		} else {
@@ -170,6 +177,9 @@ func updatePricing() {
 		})
 	}
 
+	// 构建 model → groups 映射
+	// 模型 A → [group1, group2]
+	// 模型 B → [group2]
 	modelGroupsMap := make(map[string]*types.Set[string])
 
 	for _, ability := range enableAbilities {

@@ -26,23 +26,38 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TextHelper 是所有 OpenAI 风格文本 / 对话请求的核心执行器,负责：
+//   - Chat / Completion 请求适配
+//   - Stream / StreamOptions 管理
+//   - System Prompt 注入与覆盖
+//   - 参数裁剪 & 覆盖
+//   - 下游请求转发
+//   - Usage 解析 & 精细化计费
 func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types.NewAPIError) {
+	// 初始化 channel 元信息
 	info.InitChannelMeta(c)
 
+	// 请求类型校验, TextHelper 只服务 OpenAI 风格请求
 	textReq, ok := info.Request.(*dto.GeneralOpenAIRequest)
 	if !ok {
 		return types.NewErrorWithStatusCode(fmt.Errorf("invalid request type, expected dto.GeneralOpenAIRequest, got %T", info.Request), types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 	}
 
+	// 深拷贝
 	request, err := common.DeepCopy(textReq)
 	if err != nil {
 		return types.NewError(fmt.Errorf("failed to copy request to GeneralOpenAIRequest: %w", err), types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
 	}
 
+	// WebSearchOptions：隐性上下文传递,
+	// WebSearchOptions 本身不一定发给下游
+	// 但其 context size 会影响 token 计算 / 计费
+	// 用 gin.Context 做 side-channel 传递信息
 	if request.WebSearchOptions != nil {
 		c.Set("chat_completion_web_search_context_size", request.WebSearchOptions.SearchContextSize)
 	}
 
+	// 模型映射
 	err = helper.ModelMappedHelper(c, info, request)
 	if err != nil {
 		return types.NewError(err, types.ErrorCodeChannelModelMappedError, types.ErrOptionWithSkipRetry())
@@ -54,7 +69,7 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 		includeUsage = request.StreamOptions.IncludeUsage
 	}
 
-	// 如果不支持StreamOptions，将StreamOptions设置为nil
+	// 渠道如果不支持StreamOptions，将StreamOptions设置为nil
 	if !info.SupportStreamOptions || !request.Stream {
 		request.StreamOptions = nil
 	} else {
@@ -85,11 +100,13 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 		}
 		requestBody = bytes.NewBuffer(body)
 	} else {
+		// 标准转换模式
 		convertedRequest, err := adaptor.ConvertOpenAIRequest(c, info, request)
 		if err != nil {
 			return types.NewError(err, types.ErrorCodeConvertRequestFailed, types.ErrOptionWithSkipRetry())
 		}
 
+		// System Prompt 注入 & 覆盖
 		if info.ChannelSetting.SystemPrompt != "" {
 			// 如果有系统提示，则将其添加到请求中
 			request, ok := convertedRequest.(*dto.GeneralOpenAIRequest)

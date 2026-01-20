@@ -32,6 +32,13 @@ func IsRequestBodyTooLargeError(err error) bool {
 	return errors.As(err, &mbe)
 }
 
+// GetRequestBody
+// 核心功能：
+//   - 从 gin.Context 中安全地读取 HTTP 请求体（Request.Body）
+//   - 支持缓存（避免重复读取 Body）
+//   - 支持最大请求体大小限制（MB）
+//   - 当请求体过大时返回明确错误
+//   - 读取完成后主动关闭 Request.Body
 func GetRequestBody(c *gin.Context) ([]byte, error) {
 	cached, exists := c.Get(KeyRequestBody)
 	if exists && cached != nil {

@@ -186,6 +186,8 @@ func UpdateOption(key string, value string) error {
 	// otherwise it will execute Update (with all fields).
 	DB.Save(&option)
 	// Update OptionMap
+	// 同步更新全局 OptionMap 缓存
+	// 返回值来自缓存更新函数
 	return updateOptionMap(key, value)
 }
 

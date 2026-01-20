@@ -129,6 +129,8 @@ type RelayInfo struct {
 	*TaskRelayInfo
 }
 
+// InitChannelMeta 的职责不是“计算”，而是“对齐上下文”
+// 把上下文规范化为 ChannelMeta ，ChannelMeta 包含了实际的参数，例如 API Key，API Version，API Type，API Base URL
 func (info *RelayInfo) InitChannelMeta(c *gin.Context) {
 	channelType := common.GetContextKeyInt(c, constant.ContextKeyChannelType)
 	paramOverride := common.GetContextKeyStringMap(c, constant.ContextKeyChannelParamOverride)
