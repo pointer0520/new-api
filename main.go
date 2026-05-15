@@ -150,8 +150,9 @@ func main() {
 		Path:     "/",
 		MaxAge:   2592000, // 30 days
 		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteStrictMode,
+		Secure:   true,                  // 必须 https
+		Domain:   "token.wxaicc.com",    // token.wxaicc.com 可以读取到此 cookie
+		SameSite: http.SameSiteNoneMode, // Lax 允许跨站跳转时携带 cookie
 	})
 	server.Use(sessions.Sessions("session", store))
 

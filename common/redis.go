@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -22,22 +23,29 @@ func RedisKeyCacheSeconds() int {
 
 // InitRedisClient This function is called after init()
 func InitRedisClient() (err error) {
-	if os.Getenv("REDIS_CONN_STRING") == "" {
+	if os.Getenv("REDIS_SENTINEL_MASTER_NAME") == "" {
 		RedisEnabled = false
-		SysLog("REDIS_CONN_STRING not set, Redis is not enabled")
+		SysLog("REDIS_SENTINEL_MASTER_NAME not set, Redis is not enabled")
 		return nil
 	}
 	if os.Getenv("SYNC_FREQUENCY") == "" {
 		SysLog("SYNC_FREQUENCY not set, use default value 60")
 		SyncFrequency = 60
 	}
-	SysLog("Redis is enabled")
-	opt, err := redis.ParseURL(os.Getenv("REDIS_CONN_STRING"))
-	if err != nil {
-		FatalLog("failed to parse Redis connection string: " + err.Error())
+	SysLog("Redis Sentinel is enabled")
+	poolSize := 10
+	if poolSizeStr := os.Getenv("REDIS_POOL_SIZE"); poolSizeStr != "" {
+		if parsed, err := strconv.Atoi(poolSizeStr); err == nil {
+			poolSize = parsed
+		}
 	}
-	opt.PoolSize = GetEnvOrDefault("REDIS_POOL_SIZE", 10)
-	RDB = redis.NewClient(opt)
+	RDB = redis.NewFailoverClient(&redis.FailoverOptions{
+		MasterName:    os.Getenv("REDIS_SENTINEL_MASTER_NAME"),
+		SentinelAddrs: strings.Split(os.Getenv("REDIS_SENTINEL_ADDRESSES"), ","),
+		Password:      os.Getenv("REDIS_PASSWORD"),
+		DB:            0,
+		PoolSize:      poolSize,
+	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -46,19 +54,13 @@ func InitRedisClient() (err error) {
 	if err != nil {
 		FatalLog("Redis ping test failed: " + err.Error())
 	}
+
+	opt := RDB.Options()
 	if DebugEnabled {
 		SysLog(fmt.Sprintf("Redis connected to %s", opt.Addr))
 		SysLog(fmt.Sprintf("Redis database: %d", opt.DB))
 	}
 	return err
-}
-
-func ParseRedisOption() *redis.Options {
-	opt, err := redis.ParseURL(os.Getenv("REDIS_CONN_STRING"))
-	if err != nil {
-		FatalLog("failed to parse Redis connection string: " + err.Error())
-	}
-	return opt
 }
 
 func RedisSet(key string, value string, expiration time.Duration) error {

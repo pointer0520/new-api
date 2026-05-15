@@ -62,6 +62,14 @@ func geminiRelayHandler(c *gin.Context, info *relaycommon.RelayInfo) *types.NewA
 	return err
 }
 
+// Relay 所有模型请求的“总入口”
+// 负责：
+//   - 请求解析 & 校验
+//   - WebSocket / HTTP 兼容
+//   - 敏感词 & token 预估
+//   - 价格计算 & 预扣费
+//   - 多渠道选择 & 重试
+//   - 统一错误返回
 func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 	requestId := c.GetString(common.RequestIdKey)
@@ -429,7 +437,7 @@ func RelayMidjourney(c *gin.Context) {
 func RelayNotImplemented(c *gin.Context) {
 	err := types.OpenAIError{
 		Message: "API not implemented",
-		Type:    "new_api_error",
+		Type:    "token_api_error",
 		Param:   "",
 		Code:    "api_not_implemented",
 	}

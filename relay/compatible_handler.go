@@ -356,7 +356,11 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 			audioInputPrice = operation_setting.GetGeminiInputAudioPricePerMillionTokens(modelName)
 			if audioInputPrice > 0 {
 				audioInputQuota = decimal.NewFromFloat(audioInputPrice).Div(decimal.NewFromInt(1000000)).Mul(dAudioTokens).Mul(dGroupRatio).Mul(dQuotaPerUnit)
-				extraContent += fmt.Sprintf("Audio Input 花费 %s", audioInputQuota.String())
+				//extraContent += fmt.Sprintf("Audio Input 花费 %s", audioInputQuota.String())
+				extraContent = append(
+					extraContent,
+					fmt.Sprintf("Audio Input 花费 %s", audioInputQuota.String()),
+				)
 			}
 		}
 
