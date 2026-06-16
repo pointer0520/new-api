@@ -75,6 +75,8 @@ const defaultTierRules = [
     completion_ratio: 1.0,
     input_price: 0,
     output_price: 0,
+    cache_read_ratio: 0,
+    cache_read_price: 0,
   },
   {
     name: 'T2_input_le_32k_output_gt_200',
@@ -86,6 +88,8 @@ const defaultTierRules = [
     completion_ratio: 1.5,
     input_price: 0,
     output_price: 0,
+    cache_read_ratio: 0,
+    cache_read_price: 0,
   },
   {
     name: 'T3_input_32k_to_128k',
@@ -97,6 +101,8 @@ const defaultTierRules = [
     completion_ratio: 1.0,
     input_price: 0,
     output_price: 0,
+    cache_read_ratio: 0,
+    cache_read_price: 0,
   },
   {
     name: 'T4_input_gt_128k',
@@ -108,6 +114,8 @@ const defaultTierRules = [
     completion_ratio: 1.0,
     input_price: 0,
     output_price: 0,
+    cache_read_ratio: 0,
+    cache_read_price: 0,
   },
 ];
 
@@ -808,6 +816,30 @@ export default function TokenTierPricingSettings({ options, refresh }) {
                     )}
                   </Text>
                 </Form.Slot>
+
+                <Form.Slot label={t('缓存命中倍率')} style={{ marginBottom: 20 }}>
+                  <InputNumber
+                    value={editingRule.cache_read_ratio}
+                    onChange={(value) => setEditingRule({ ...editingRule, cache_read_ratio: value || 0 })}
+                    min={0}
+                    step={0.01}
+                    precision={4}
+                    suffix="倍率"
+                    style={{ width: '100%' }}
+                    size="large"
+                    placeholder={t('使用全局配置')}
+                  />
+                  <Text type="tertiary" size="small" style={{ display: 'block', marginTop: 8 }}>
+                    {t('可选，未配置时使用全局 CacheRatio')}
+                    {editingRule.cache_read_ratio > 0 && (
+                      <span style={{ color: 'var(--semi-color-primary)', marginLeft: 8 }}>
+                        {t('(等价价格: ${{price}}/1M)', {
+                          price: (editingRule.cache_read_ratio * getRatioBasePrice()).toFixed(6),
+                        })}
+                      </span>
+                    )}
+                  </Text>
+                </Form.Slot>
               </>
             )}
 
@@ -873,6 +905,30 @@ export default function TokenTierPricingSettings({ options, refresh }) {
                       <span style={{ color: 'var(--semi-color-primary)' }}>
                         {t('等价倍率: {{ratio}} (相对于输入价格)', {
                           ratio: (editingRule.outputPrice / editingRule.inputPrice).toFixed(4),
+                        })}
+                      </span>
+                    )}
+                  </Text>
+                </Form.Slot>
+
+                <Form.Slot label={t('缓存命中价格')} style={{ marginBottom: 20 }}>
+                  <InputNumber
+                    value={editingRule.cache_read_price}
+                    onChange={(value) => setEditingRule({ ...editingRule, cache_read_price: value || 0 })}
+                    min={0}
+                    step={0.001}
+                    precision={6}
+                    suffix="USD/1M"
+                    style={{ width: '100%' }}
+                    size="large"
+                    placeholder={t('使用全局配置')}
+                  />
+                  <Text type="tertiary" size="small" style={{ display: 'block', marginTop: 8 }}>
+                    {t('可选，未配置时使用全局 CacheRatio')}
+                    {editingRule.cache_read_price > 0 && (
+                      <span style={{ color: 'var(--semi-color-primary)', marginLeft: 8 }}>
+                        {t('等价倍率: {{ratio}}', {
+                          ratio: (editingRule.cache_read_price / getRatioBasePrice()).toFixed(4),
                         })}
                       </span>
                     )}

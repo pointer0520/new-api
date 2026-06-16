@@ -112,6 +112,16 @@ const ModelTierPricingInfo = ({ modelData, tokenTierPricing, tokenUnit = 'K', t 
         const isPriceMode =
             (rule.input_price ?? 0) !== 0 || (rule.output_price ?? 0) !== 0;
 
+        // 缓存命中计费
+        const cacheReadPrice = rule.cache_read_price ?? 0;
+        const cacheReadRatio = rule.cache_read_ratio ?? 0;
+        let cacheReadValue = '-';
+        if (isPriceMode && cacheReadPrice > 0) {
+            cacheReadValue = `$${cacheReadPrice.toFixed(6)} / ${priceUnit}`;
+        } else if (!isPriceMode && cacheReadRatio > 0) {
+            cacheReadValue = `${cacheReadRatio.toFixed(2)}x`;
+        }
+
         return {
             key: index,
             name: rule.name || `T${index + 1}`,
@@ -123,6 +133,7 @@ const ModelTierPricingInfo = ({ modelData, tokenTierPricing, tokenUnit = 'K', t 
             outputValue: isPriceMode
                 ? `$${(rule.output_price ?? 0).toFixed(6)} / ${priceUnit}`
                 : `${(rule.output_ratio ?? ((rule.input_ratio ?? 0) * (rule.completion_ratio ?? 1.0))).toFixed(2)}x`,
+            cacheReadValue,
         };
     });
 
@@ -169,6 +180,15 @@ const ModelTierPricingInfo = ({ modelData, tokenTierPricing, tokenUnit = 'K', t 
             dataIndex: 'outputValue',
             render: (text) => (
                 <div className='font-semibold text-orange-600'>{text}</div>
+            ),
+        },
+        {
+            title: t('缓存命中'),
+            dataIndex: 'cacheReadValue',
+            render: (text) => (
+                <div className={`font-semibold ${text === '-' ? 'text-gray-400' : 'text-green-600'}`}>
+                    {text}
+                </div>
             ),
         },
     ];

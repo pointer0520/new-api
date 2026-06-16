@@ -21,6 +21,8 @@ type TokenTierRule struct {
 	// 倍率模式：基于系统默认倍率（1倍率 = $2/1M tokens）
 	InputRatio      float64 `json:"input_ratio"`      // 输入倍率，0表示使用价格
 	CompletionRatio float64 `json:"completion_ratio"` // 输出倍率（相对于输入），默认1.0
+	CacheReadPrice  float64 `json:"cache_read_price"` // 缓存命中价格(USD / 1M token), 价格模式
+	CacheReadRatio  float64 `json:"cache_read_ratio"` // 缓存命中倍率
 }
 
 // ModelTierPricing 单个模型的四段计费配置
@@ -45,6 +47,8 @@ type TokenTierPriceResult struct {
 	UseRatio        bool    // 是否使用倍率模式
 	InputRatio      float64 // 输入倍率
 	CompletionRatio float64 // 输出倍率
+	CacheReadPrice  float64 // 缓存命中价格
+	CacheReadRatio  float64 // 缓存命中倍率
 }
 
 // 配置锁
@@ -129,6 +133,10 @@ func ResolveTokenTierPrice(modelName string, inputTokens, outputTokens int) Toke
 				result.CompletionRatio = 1.0
 			}
 		}
+
+		// 缓存命中定价
+		result.CacheReadPrice = rule.CacheReadPrice
+		result.CacheReadRatio = rule.CacheReadRatio
 		return result
 	}
 

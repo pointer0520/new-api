@@ -338,7 +338,25 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 		// 特殊tokens按原有逻辑处理（使用倍率）
 		// 缓存tokens
 		if cacheTokens > 0 {
-			cachedTokensQuota := dCacheTokens.Mul(dCacheRatio).Mul(ratio)
+			//cachedTokensQuota := dCacheTokens.Mul(dCacheRatio).Mul(ratio)
+			//quotaCalculateDecimal = quotaCalculateDecimal.Add(cachedTokensQuota)
+			var cachedTokensQuota decimal.Decimal
+			if tierResult.CacheReadRatio > 0 {
+				// 倍率模式：使用规则的缓存命中倍率
+				cachedTokensQuota = dCacheTokens.
+					Mul(decimal.NewFromFloat(tierResult.CacheReadRatio)).
+					Mul(dGroupRatio)
+			} else if tierResult.CacheReadPrice > 0 {
+				// 价格模式：使用规则的缓存命中价格
+				cachedTokensQuota = dCacheTokens.
+					Mul(decimal.NewFromFloat(tierResult.CacheReadPrice)).
+					Div(decimal.NewFromInt(1_000_000)).
+					Mul(dQuotaPerUnit).
+					Mul(dGroupRatio)
+
+			} else {
+				cachedTokensQuota = dCacheTokens.Mul(dCacheRatio).Mul(ratio)
+			}
 			quotaCalculateDecimal = quotaCalculateDecimal.Add(cachedTokensQuota)
 		}
 		// 缓存创建tokens
@@ -512,6 +530,12 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 		}
 		other["tier_base_input_tokens"] = baseInputTokens
 		other["tier_output_tokens"] = completionTokens
+		if tierResult.CacheReadRatio > 0 {
+			other["tier_cache_read_ratio"] = tierResult.CacheReadRatio
+		}
+		if tierResult.CacheReadPrice > 0 {
+			other["tier_cache_read_price"] = tierResult.CacheReadPrice
+		}
 	}
 
 	if imageTokens != 0 {
