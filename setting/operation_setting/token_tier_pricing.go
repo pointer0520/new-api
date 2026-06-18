@@ -27,9 +27,10 @@ type TokenTierRule struct {
 
 // ModelTierPricing 单个模型的四段计费配置
 type ModelTierPricing struct {
-	Enabled bool            `json:"enabled"` // 是否启用该模型的四段计费
-	Models  string          `json:"models"`  // 模型名称列表，逗号分割，支持通配符
-	Rules   []TokenTierRule `json:"rules"`   // 该模型的计费规则
+	Enabled     bool            `json:"enabled"`      // 是否启用该模型的四段计费
+	Models      string          `json:"models"`       // 模型名称列表，逗号分割，支持通配符
+	Rules       []TokenTierRule `json:"rules"`        // 该模型的计费规则
+	EnableCache bool            `json:"enable_cache"` // 该模型是否开启缓存计费
 }
 
 // TokenTierPricingConfig 四段计费配置（支持每个模型独立配置）
@@ -105,7 +106,7 @@ func ResolveTokenTierPrice(modelName string, inputTokens, outputTokens int) Toke
 
 	// 2. 查找模型配置（支持精确匹配和通配符匹配）
 	modelPricing, found := findModelPricing(modelName)
-	if !found || !modelPricing.Enabled {
+	if !found || !modelPricing.Enabled || !modelPricing.EnableCache {
 		return result
 	}
 
